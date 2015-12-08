@@ -1,7 +1,6 @@
 #include <Windows.h>
 #include "hook.h"
 
-extern "C"
 int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
                         _In_ HINSTANCE hPrevInstance,
                         _In_ LPSTR     lpCmdLine,
