@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <Windows.h>
+#include "hook.h"
 
 namespace {
 
@@ -72,6 +73,9 @@ void       ** gHDDraw       = (void**)          0x53A274;
 void       ** gHDInput      = (void**)          0x53A278;
 void       ** gHDSound      = (void**)          0x53A27C;
 
+// Window Instance
+HWND        * gWindow       = (HWND*)           0x53A280;
+
 } // namespace {}
 
 int init_wndclass( HINSTANCE hinst ) {
@@ -91,6 +95,68 @@ int init_wndclass( HINSTANCE hinst ) {
     // Register the window class
     int res = RegisterClassA(&wndClass);
     return res & 0xffff;
+}
+
+int create_window() {
+
+    // Early exit if the window already exists
+    if (*gWindow != nullptr) {
+        return 0;
+    }
+
+#if 1
+    // Fullscreen (Original)
+    const DWORD style1 = WS_EX_TOPMOST;
+    const DWORD style2 = WS_SYSMENU | WS_VISIBLE | WS_POPUP;
+    const DWORD width  = GetSystemMetrics(SM_CXSCREEN);
+    const DWORD height = GetSystemMetrics(SM_CYSCREEN);
+    const DWORD x      = 0;
+    const DWORD y      = 0;
+#else
+    // Windowed mode
+    const DWORD style1 = WS_EX_CLIENTEDGE;
+    const DWORD style2 = WS_SYSMENU | WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+    const DWORD width  = 640;
+    const DWORD height = 480;
+    const DWORD x      = CW_USEDEFAULT;
+    const DWORD y      = CW_USEDEFAULT;
+#endif
+
+    // Get the window name
+    const char * wnd_name = (const char *) 0x6B0760;
+
+    // Create the main app window
+    *gWindow = CreateWindowExA(style1,
+                               "GNW95 Class",
+                               wnd_name,
+                               style2,
+                               x,
+                               y,
+                               width,
+                               height,
+                               nullptr,
+                               nullptr,
+                               *gHInstance,
+                               nullptr);
+
+    if (*gWindow == nullptr) {
+        // Fail
+        return -1;
+    }
+
+    // Run winproc and bring into focus
+    UpdateWindow(*gWindow);
+    SetFocus(*gWindow);
+
+    // Success
+    return 0;
+}
+
+__declspec(naked)
+int hook_create_window() {
+    // Bounce into our create window
+    __asm CALL create_window
+    __asm RET
 }
 
 int init_directx() {
@@ -141,10 +207,17 @@ int init_directx() {
     return 0;
 }
 
+void place_hooks() {
+    hook((void*)0x4B5738, (void*)hook_create_window); 
+}
+
 int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
                         _In_ HINSTANCE hPrevInstance,
                         _In_ LPSTR     lpCmdLine,
                         _In_ int       nCmdShow){
+
+    // Place additional hooks
+    place_hooks();
 
     // Create global mutex
     *gMutex = CreateMutexA(nullptr, TRUE, gWN95Mutex);
