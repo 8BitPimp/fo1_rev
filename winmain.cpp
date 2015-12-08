@@ -4,7 +4,7 @@
 namespace {
 
 int call_checkWinVersion() {
-    static const void * dst = (void*) 0x004C9DF4;
+    static const void * dst = (void*) 0x4C9DF4;
     int rval = 0;
     __asm CALL dst
     __asm MOV rval, EAX
@@ -12,7 +12,7 @@ int call_checkWinVersion() {
 }
 
 int call_4CE0B4(uint64_t * val, char * cmd_args) {
-    static const void * dst = (void*) 0x004CE0B4;
+    static const void * dst = (void*) 0x4CE0B4;
     int rval = 0;
     __asm MOV EAX, val
     __asm MOV EDX, cmd_args
@@ -22,7 +22,7 @@ int call_4CE0B4(uint64_t * val, char * cmd_args) {
 }
 
 void call_4CE420(int _eax, int _edx, void * _ebx) {
-    static const void * dst = (void*) 0x004CE420;
+    static const void * dst = (void*) 0x4CE420;
     __asm MOV EAX, _eax
     __asm MOV EDX, _edx
     __asm MOV EBX, _ebx
@@ -30,7 +30,7 @@ void call_4CE420(int _eax, int _edx, void * _ebx) {
 }
 
 void call_4725E8(uint64_t * arg) {
-    static const void * dst = (void*) 0x004725E8;
+    static const void * dst = (void*) 0x4725E8;
     __asm MOV EAX, arg
     __asm MOV EDX, [EAX+4]
     __asm MOV EAX, [EAX]
@@ -38,18 +38,18 @@ void call_4725E8(uint64_t * arg) {
 }
 
 void call_4CE24C(uint64_t * arg) {
-    static const void * dst = (void*) 0x004CE24C;
+    static const void * dst = (void*) 0x4CE24C;
     __asm MOV EAX, arg
     __asm CALL dst
 }
 
 void call_4C9F18() {
-    static const void * dst = (void*) 0x004C9F18;
+    static const void * dst = (void*) 0x4C9F18;
     __asm CALL dst;
 }
 
 void call_4CD0F1(void * cb) {
-    static const void * dst = (void*) 0x004CD0F1;
+    static const void * dst = (void*) 0x4CD0F1;
     __asm MOV EAX, cb
     __asm CALL dst;
 }
@@ -133,8 +133,8 @@ int init_directx() {
     call_4C9F18();
 
     // Show error message
-    const char * capt = (const char *) 0x004FE2EC;
-    const char * text = (const char *) 0x004FE304;
+    const char * capt = (const char *) 0x4FE2EC;
+    const char * text = (const char *) 0x4FE304;
     MessageBoxA(0, capt, text, MB_ICONHAND);
 
     // Fail

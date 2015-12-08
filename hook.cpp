@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <Windows.h>
 
-void hook( void * pos, void * to ) {
+void hook(void * pos, void * to) {
     uint8_t * o1 = (uint8_t*) pos;
     uint8_t * o2 = (uint8_t*) to;
     DWORD old = 0;

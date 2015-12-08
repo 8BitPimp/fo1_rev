@@ -9,10 +9,11 @@ int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
 BOOL WINAPI DllMain(_In_ HINSTANCE hinstDLL,
                     _In_ DWORD     fdwReason,
                     _In_ LPVOID    lpvReserved) {
-    // redirect the old winmain
-    hook((void*)0x04C9C90, fo_WinMain);
+
+    // Redirect the old winmain
+    hook((void*)0x4C9C90, fo_WinMain);
     return TRUE;
 }
 
-// dummy export
+// Dummy export, which is added to fallouts import table
 extern "C" __declspec(dllexport) void dummy() {}

@@ -1,3 +1,4 @@
 #pragma once
 
-void hook( void * pos, void * to );
+// Simple function hooker, inserts a rel32 JMP at 'from' branching to 'to'
+void hook(void * from, void * to);
