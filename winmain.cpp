@@ -46,17 +46,17 @@ void call_4CE420( int _eax, int _edx, void * _ebx ) {
     __asm CALL dst
 }
 
-void call_4725E8( uint64_t arg ) {
+void call_4725E8( uint64_t * arg ) {
     static const void * dst = (void*) 0x004725E8;
-    __asm LEA EAX, arg
+    __asm MOV EAX, arg
     __asm MOV EDX, [EAX+4]
     __asm MOV EAX, [EAX]
     __asm CALL dst
 }
 
-void call_4CE24C( uint64_t arg ) {
+void call_4CE24C( uint64_t * arg ) {
     static const void * dst = (void*) 0x004CE24C;
-    __asm LEA EAX, arg
+    __asm MOV EAX, arg
     __asm MOV EAX, [EAX]
     __asm CALL dst
 }
@@ -128,9 +128,9 @@ int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
 
     *g53A290 = 1;
 
-    call_4725E8(local);
+    call_4725E8(&local);
 
-    call_4CE24C(local);
+    call_4CE24C(&local);
 
     return 1;
 }
