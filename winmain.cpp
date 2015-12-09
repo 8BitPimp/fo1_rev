@@ -1,16 +1,9 @@
 #include <stdint.h>
 #include <Windows.h>
+#include <stdlib.h>
 #include "hook.h"
 
 namespace {
-
-int call_checkWinVersion() {
-    static const void * dst = (void*) 0x4C9DF4;
-    int rval = 0;
-    __asm CALL dst
-    __asm MOV rval, EAX
-    return rval;
-}
 
 int call_4CE0B4(uint64_t * val, char * cmd_args) {
     static const void * dst = (void*) 0x4CE0B4;
@@ -55,6 +48,18 @@ void call_4CD0F1(void * cb) {
     __asm CALL dst;
 }
 
+// Enable debug log
+void call_4B2E50() {
+    static const void * dst = (void*) 0x4B2E50;
+    __asm CALL dst
+}
+
+__declspec(naked)
+void debug_log(const char * fmt, ...) {
+    static const void * dst = (void*) 0x4B3008;
+    __asm JMP dst
+}
+
 // Winmain Globals
 const char  * gWN95Mutex    = (const char*)     0x4FE214;
 HANDLE      * gMutex        = (HANDLE*)         0x53A294;
@@ -78,7 +83,39 @@ HWND        * gWindow       = (HWND*)           0x53A280;
 
 } // namespace {}
 
-int init_wndclass( HINSTANCE hinst ) {
+int check_win_version() {
+
+    // Get os info
+    OSVERSIONINFOA info;
+    ZeroMemory(&info, sizeof(info));
+    if (GetVersionExA(&info) != TRUE) {
+        return 1;
+    }
+
+    do {
+        // 1 = Windows 95
+        if (info.dwPlatformId < 1)
+            break;
+
+        // 4 = Major version
+        if (info.dwMajorVersion < 4)
+            break;
+
+        // All is well
+        return 1;
+    }
+    while (false);
+
+    // Display error message
+    const char * capt = (const char *) 0x4FE22C;
+    const char * text = (const char *) 0x4FE244;
+    MessageBoxA(nullptr, text, capt, 0x10);
+
+    // Fail
+    return 0;
+}
+
+int init_wndclass(HINSTANCE hinst) {
 
     // Create window class structure
     WNDCLASSA wndClass;
@@ -113,7 +150,7 @@ int create_window() {
     const DWORD x      = 0;
     const DWORD y      = 0;
 #else
-    // Windowed mode
+    // Windowed mode (Forced to full screen later...)
     const DWORD style1 = WS_EX_CLIENTEDGE;
     const DWORD style2 = WS_SYSMENU | WS_OVERLAPPEDWINDOW | WS_VISIBLE;
     const DWORD width  = 640;
@@ -221,7 +258,16 @@ int init_directx() {
 }
 
 void place_hooks() {
-    hook((void*)0x4B5738, (void*)hook_create_window); 
+
+    // Hook the create window function
+    hook((void*)0x4B5738, (void*)hook_create_window);
+
+    // Enable the debug log (debug.log)
+    // note: must export env var $DEBUGACTIVE="log"
+    if (getenv("DEBUGACTIVE")) {
+        call_4B2E50();
+        debug_log( "Fallout is hooked! %d %d %s", 1, 2, "Hi" );
+    }
 }
 
 int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
@@ -248,7 +294,7 @@ int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
     }
 
     // Check for compatable windows version
-    if (call_checkWinVersion() == 0) {
+    if (check_win_version() == 0) {
         CloseHandle(*gMutex);
         return 0;
     }
