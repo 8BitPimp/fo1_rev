@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdint.h>
 #include <Windows.h>
 #include <stdlib.h>
@@ -49,13 +50,31 @@ void call_4CD0F1(void * cb) {
 }
 
 // Enable debug log
-void call_4B2E50() {
+void call_init_debug_log() {
     static const void * dst = (void*) 0x4B2E50;
     __asm CALL dst
 }
 
+void call_4B43FC(int arg) {
+    static const void * dst = (void*) 0x4B43FC;
+    __asm MOV eax, arg
+    __asm CALL dst
+}
+
+void call_4C3654(int arg) {
+    static const void * dst = (void*) 0x4C3654;
+    __asm MOV eax, arg
+    __asm CALL dst
+}
+
+void call_4CF800(int arg) {
+    static const void * dst = (void*) 0x4CF800;
+    __asm CALL dst
+}
+
+// Call fallouts debug log function
 __declspec(naked)
-void debug_log(const char * fmt, ...) {
+void call_debug_log(const char * fmt, ...) {
     static const void * dst = (void*) 0x4B3008;
     __asm JMP dst
 }
@@ -82,6 +101,71 @@ void       ** gHDSound      = (void**)          0x53A27C;
 HWND        * gWindow       = (HWND*)           0x53A280;
 
 } // namespace {}
+
+LRESULT __stdcall window_proc(HWND hwnd,
+                              UINT uMsg,
+                              WPARAM wParam,
+                              LPARAM lParam) {
+
+    /*
+    // Fall through to original fallout winproc handler
+    const WNDPROC old_proc = (WNDPROC) 0x4C9F8C;
+    return old_proc(hwnd, uMsg, wParam, lParam);
+    */
+
+    switch (uMsg) {
+    case (WM_ACTIVATEAPP): {
+        int * dw_53A290 = (int*) 0x53A290;
+        *dw_53A290 = wParam;
+
+        // Window is being activated
+        if (wParam == TRUE) {
+            call_4B43FC(1);
+            int * dw_672170 = (int*) 0x672170;
+            call_4C3654(*dw_672170);
+        }
+        // Window is being deactivated
+        else {
+            call_4B43FC(0);
+        }
+        return 0;
+        }
+
+    case (WM_PAINT): {
+        RECT wndRect;
+        if (GetUpdateRect(hwnd, &wndRect, 0) == TRUE) {
+            int32_t size[] = {
+                wndRect.left,
+                wndRect.top,
+                wndRect.right-1,
+                wndRect.bottom-1
+            };
+            call_4C3654((int) &size);
+        }
+        }
+        break;
+
+    case (WM_SETCURSOR):
+        if (hwnd == *gWindow) {
+            SetCursor(0);
+            return 1;
+        }
+        break;
+
+    case (WM_DESTROY):
+        call_4CF800(0);
+        break;
+
+    case (WM_SYSCOMMAND):
+        if (wParam == SC_SCREENSAVE ||
+            wParam == SC_MONITORPOWER) {
+            return 0;
+        }
+    }
+
+    // Pass message to default message handler
+    return DefWindowProcA(hwnd, uMsg, wParam, lParam);
+}
 
 int check_win_version() {
 
@@ -124,7 +208,7 @@ int init_wndclass(HINSTANCE hinst) {
     // Fill window class properties
     wndClass.hIcon          = LoadIconA(hinst, (const char *) 0x63);
     wndClass.lpszClassName  = "GNW95 Class";
-    wndClass.lpfnWndProc    = (WNDPROC) 0x4C9F8C;
+    wndClass.lpfnWndProc    = window_proc;
     wndClass.hInstance      = hinst;
     wndClass.style          = CS_HREDRAW | CS_VREDRAW;
     wndClass.hbrBackground  = (HBRUSH) GetStockObject(BLACK_BRUSH);
@@ -265,8 +349,8 @@ void place_hooks() {
     // Enable the debug log (debug.log)
     // note: must export env var $DEBUGACTIVE="log"
     if (getenv("DEBUGACTIVE")) {
-        call_4B2E50();
-        debug_log( "Fallout is hooked! %d %d %s", 1, 2, "Hi" );
+        call_init_debug_log();
+        call_debug_log("Fallout is hooked!");
     }
 }
 
