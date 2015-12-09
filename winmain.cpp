@@ -154,8 +154,21 @@ int create_window() {
 
 __declspec(naked)
 int hook_create_window() {
+    // callee save
+    __asm PUSH EDX
+    __asm PUSH ECX
+    __asm PUSH EBX
+    __asm PUSH ESI
+    __asm PUSH EDI
     // Bounce into our create window
     __asm CALL create_window
+    // restore callee save
+    __asm POP EDI
+    __asm POP ESI
+    __asm POP EBX
+    __asm POP ECX
+    __asm POP EDX
+    // return with EAX
     __asm RET
 }
 
