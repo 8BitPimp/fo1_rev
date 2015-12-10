@@ -14,26 +14,29 @@ void call_debug_log(const char * fmt, ...) {
     __asm JMP dst
 }
 
+#define GLOBAL(TYPE, NAME, OFFSET)  TYPE & NAME = *(TYPE *)OFFSET
+#define STRING(NAME, OFFSET) const char * NAME = (const char *)OFFSET
+
 // Winmain Globals
-const char  * gWN95Mutex    = (const char*)     0x4FE214;
-HANDLE      * gMutex        = (HANDLE*)         0x53A294;
-HINSTANCE   * gHInstance    = (HINSTANCE*)      0x53A284;
-int         * gCmdShow      = (int*)            0x53A28C;
-const char ** gCmdArgs      = (const char**)    0x53A288;
-int *         g53A290       = (int*)            0x53A290;
+STRING(gWN95Mutex, 0x4FE214 );
+GLOBAL(HANDLE,         gMutex,         0x53A294);
+GLOBAL(HINSTANCE,      gHInstance,     0x53A284);
+GLOBAL(int,            gCmdShow,       0x53A28C);
+GLOBAL(const char*,    gCmdArgs,       0x53A288);
+GLOBAL(int,            g53A290,        0x53A290);
 
 // DirectX Modules
-HMODULE     * gHModDDraw    = (HMODULE*)        0x53A298;
-HMODULE     * gHModDInput   = (HMODULE*)        0x53A29C;
-HMODULE     * gHModDSound   = (HMODULE*)        0x53A2A0;
+GLOBAL(HMODULE,        gHModDDraw,     0x53A298);
+GLOBAL(HMODULE,        gHModDInput,    0x53A29C);
+GLOBAL(HMODULE,        gHModDSound,    0x53A2A0);
 
 // DirectX Instances
-void       ** gHDDraw       = (void**)          0x53A274;
-void       ** gHDInput      = (void**)          0x53A278;
-void       ** gHDSound      = (void**)          0x53A27C;
+GLOBAL(void*,          gHDDraw,        0x53A274);
+GLOBAL(void*,          gHDInput,       0x53A278);
+GLOBAL(void*,          gHDSound,       0x53A27C);
 
 // Window Instance
-HWND        * gWindow       = (HWND*)           0x53A280;
+GLOBAL(HWND,           gWindow,        0x53A280);
 
 } // namespace {}
 
@@ -54,7 +57,7 @@ int impl_4725E8(uint64_t * arg) {
 
     // Load color.pal ?
     if (watcall<0x472F80, int>() == 0) {
-        
+
     }
 
     return 0;
@@ -74,7 +77,7 @@ LRESULT __stdcall window_proc(HWND hwnd,
 
     switch (uMsg) {
     case (WM_ACTIVATEAPP): {
-        int * dw_53A290 = (int*) 0x53A290;
+        int *dw_53A290 = (int*) 0x53A290;
         *dw_53A290 = wParam;
 
         // Window is being activated
@@ -99,13 +102,13 @@ LRESULT __stdcall window_proc(HWND hwnd,
                 wndRect.right-1,
                 wndRect.bottom-1
             };
-            watcall<0x4C3654, int>((int) &size);
+            watcall<0x4C3654, int>((int)&size);
         }
         }
         break;
 
     case (WM_SETCURSOR):
-        if (hwnd == *gWindow) {
+        if (hwnd == gWindow) {
             SetCursor(0);
             return 1;
         }
@@ -151,8 +154,8 @@ int check_win_version() {
     while (false);
 
     // Display error message
-    const char * capt = (const char *) 0x4FE22C;
-    const char * text = (const char *) 0x4FE244;
+    const char * capt = (const char *)0x4FE22C;
+    const char * text = (const char *)0x4FE244;
     MessageBoxA(nullptr, text, capt, 0x10);
 
     // Fail
@@ -167,7 +170,7 @@ int init_wndclass(HINSTANCE hinst) {
     ZeroMemory(&wndClass, sizeof(wndClass));
 
     // Fill window class properties
-    wndClass.hIcon          = LoadIconA(hinst, (const char *) 0x63);
+    wndClass.hIcon          = LoadIconA(hinst, (const char *)0x63);
     wndClass.lpszClassName  = "GNW95 Class";
     wndClass.lpfnWndProc    = window_proc;
     wndClass.hInstance      = hinst;
@@ -183,7 +186,7 @@ int init_wndclass(HINSTANCE hinst) {
 int create_window() {
 
     // Early exit if the window already exists
-    if (*gWindow != nullptr) {
+    if (gWindow != nullptr) {
         return 0;
     }
 
@@ -209,27 +212,27 @@ int create_window() {
     const char * wnd_name = (const char *) 0x6B0760;
 
     // Create the main app window
-    *gWindow = CreateWindowExA(style1,
-                               "GNW95 Class",
-                               wnd_name,
-                               style2,
-                               x,
-                               y,
-                               width,
-                               height,
-                               nullptr,
-                               nullptr,
-                               *gHInstance,
-                               nullptr);
+    gWindow = CreateWindowExA(style1,
+                              "GNW95 Class",
+                              wnd_name,
+                              style2,
+                              x,
+                              y,
+                              width,
+                              height,
+                              nullptr,
+                              nullptr,
+                              gHInstance,
+                              nullptr);
 
-    if (*gWindow == nullptr) {
+    if (gWindow == nullptr) {
         // Fail
         return -1;
     }
 
     // Run winproc and bring into focus
-    UpdateWindow(*gWindow);
-    SetFocus(*gWindow);
+    UpdateWindow(gWindow);
+    SetFocus(gWindow);
 
     // Success
     return 0;
@@ -237,6 +240,7 @@ int create_window() {
 
 __declspec(naked)
 int hook_create_window() {
+    // Note: watcom code calls into this function
     // callee save
     __asm PUSH EDX
     __asm PUSH ECX
@@ -260,27 +264,27 @@ int init_directx() {
 
     do {
         // Load direct draw library
-        *gHModDDraw = LoadLibraryA("DDRAW.DLL");
-        if (! *gHModDDraw)
+        gHModDDraw = LoadLibraryA("DDRAW.DLL");
+        if (! gHModDDraw)
             break;
-        *gHDDraw = GetProcAddress(*gHModDDraw, "DirectDrawCreate");
-        if (! *gHDDraw)
+        gHDDraw = GetProcAddress(gHModDDraw, "DirectDrawCreate");
+        if (! gHDDraw)
             break;
 
         // Load direct input library
-        *gHModDInput = LoadLibraryA("DINPUT.DLL");
-        if (! *gHModDInput)
+        gHModDInput = LoadLibraryA("DINPUT.DLL");
+        if (! gHModDInput)
             break;
-        *gHDInput = GetProcAddress(*gHModDInput, "DirectInputCreateA");
-        if (! *gHDInput)
+        gHDInput = GetProcAddress(gHModDInput, "DirectInputCreateA");
+        if (! gHDInput)
             break;
 
         // Load direct sound library
-        *gHModDSound = LoadLibraryA("DSOUND.DLL");
-        if (! *gHModDSound)
+        gHModDSound = LoadLibraryA("DSOUND.DLL");
+        if (! gHModDSound)
             break;
-        *gHDSound = GetProcAddress(*gHModDSound, "DirectSoundCreate");
-        if (! *gHDSound)
+        gHDSound = GetProcAddress(gHModDSound, "DirectSoundCreate");
+        if (! gHDSound)
             break;
 
         // Unknown?
@@ -332,7 +336,7 @@ int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
     place_hooks();
 
     // Create global mutex
-    *gMutex = CreateMutexA(nullptr, TRUE, gWN95Mutex);
+    gMutex = CreateMutexA(nullptr, TRUE, gWN95Mutex);
     if (GetLastError == 0) {
         return 0;
     }
@@ -342,32 +346,32 @@ int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
 
     // Register window class
     if (init_wndclass(hInstance) == 0) {
-        CloseHandle(*gMutex);
+        CloseHandle(gMutex);
         return 0;
     }
 
     // Check for compatable windows version
     if (check_win_version() == 0) {
-        CloseHandle(*gMutex);
+        CloseHandle(gMutex);
         return 0;
     }
 
     // Load directx modules and exported create functions
     if (init_directx() != 1) {
-        CloseHandle(*gMutex);
+        CloseHandle(gMutex);
         return 0;
     }
 
     // Save global winmain params
-    *gHInstance = hInstance;
-    *gCmdArgs   = lpCmdLine;
-    *gCmdShow   = nCmdShow;
+    gHInstance = hInstance;
+    gCmdArgs   = lpCmdLine;
+    gCmdShow   = nCmdShow;
 
     // Unknown?
     unknown1_t local;
     ZeroMemory(&local, sizeof(local));
     if (watcall<0x4CE0B4, int>(&local, lpCmdLine) == 0) {
-        CloseHandle(*gMutex);
+        CloseHandle(gMutex);
         return 1;
     }
 
@@ -377,7 +381,7 @@ int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
     watcall<0x4CE420, int>(5, 0x4C9F84, (void*) 1);
 
     // Unknown?
-    *g53A290 = 1;
+    g53A290 = 1;
 
     // Main game jumpoff point
     watcall<0x4725E8, int>(local.a_, local.b_);
