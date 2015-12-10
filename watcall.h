@@ -51,7 +51,7 @@ ret_type watcall(type_a a, type_b b, type_c c) {
     ret_type ret_val;
     __asm mov eax, a
     __asm mov edx, b
-    __asm mov ecx, c
+    __asm mov ebx, c
     __asm call dst
     __asm mov ret_val, eax
     return ret_val;\
@@ -69,8 +69,8 @@ ret_type watcall(type_a a, type_b b, type_c c, type_d d) {
     ret_type ret_val;
     __asm mov eax, a
     __asm mov edx, b
-    __asm mov ecx, c
-    __asm mov edx, d
+    __asm mov ebx, c
+    __asm mov ecx, d
     __asm call dst
     __asm mov ret_val, eax
     return ret_val

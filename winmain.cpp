@@ -7,108 +7,6 @@
 
 namespace {
 
-int call_4CE0B4(uint64_t * val, char * cmd_args) {
-    static const void * dst = (void*) 0x4CE0B4;
-    int rval = 0;
-    __asm MOV EAX, val
-    __asm MOV EDX, cmd_args
-    __asm CALL dst
-    __asm MOV rval, EAX
-    return rval;
-}
-
-void call_4CE420(int _eax, int _edx, void * _ebx) {
-    static const void * dst = (void*) 0x4CE420;
-    __asm MOV EAX, _eax
-    __asm MOV EDX, _edx
-    __asm MOV EBX, _ebx
-    __asm CALL dst
-}
-
-void call_4725E8(uint64_t * arg) {
-    static const void * dst = (void*) 0x4725E8;
-    __asm MOV EAX, arg
-    __asm MOV EDX, [EAX+4]
-    __asm MOV EAX, [EAX]
-    __asm CALL dst
-}
-
-void call_4CE24C(uint64_t * arg) {
-    static const void * dst = (void*) 0x4CE24C;
-    __asm MOV EAX, arg
-    __asm CALL dst
-}
-
-void call_4C9F18() {
-    static const void * dst = (void*) 0x4C9F18;
-    __asm CALL dst;
-}
-
-void call_4CD0F1(void * cb) {
-    static const void * dst = (void*) 0x4CD0F1;
-    __asm MOV EAX, cb
-    __asm CALL dst;
-}
-
-void call_init_debug_log() {
-    static const void * dst = (void*) 0x4B2E50;
-    __asm CALL dst
-}
-
-void call_4B43FC(int arg) {
-    static const void * dst = (void*) 0x4B43FC;
-    __asm MOV eax, arg
-    __asm CALL dst
-}
-
-void call_4C3654(int arg) {
-    static const void * dst = (void*) 0x4C3654;
-    __asm MOV eax, arg
-    __asm CALL dst
-}
-
-void call_4CF800(int arg) {
-    static const void * dst = (void*) 0x4CF800;
-    __asm CALL dst
-}
-
-// Create autorun mutex
-int call_413450(uint64_t * arg) {
-    static const void * dst = (void*) 0x413450;
-    int ret_val = 0;
-    __asm MOV eax, arg
-    __asm CALL dst
-    __asm MOV ret_val, eax
-    return ret_val;
-}
-
-int call_4728CC(uint64_t * arg) {
-    static const void * dst = (void*) 0x4728CC;
-    int ret_val = 0;
-    __asm MOV eax, arg
-    __asm CALL dst
-    __asm MOV ret_val, eax
-    return ret_val;
-}
-
-int call_4460C0(int a, int b) { 
-    static const void * dst = (void*) 0x4460C0;
-    int ret_val = 0;
-    __asm MOV eax, a
-    __asm MOV edx, b
-    __asm CALL dst
-    __asm MOV ret_val, eax
-    return ret_val;
-}
-
-int call_472F80() {
-    static const void * dst = (void*) 0x472F80;
-    int ret_val = 0;
-    __asm CALL dst
-    __asm MOV ret_val, eax
-    return ret_val;
-}
-
 // Call fallouts debug log function
 __declspec(naked)
 void call_debug_log(const char * fmt, ...) {
@@ -414,7 +312,7 @@ void place_hooks() {
     // Enable the debug log (debug.log)
     // note: must export env var $DEBUGACTIVE="log"
     if (getenv("DEBUGACTIVE")) {
-        call_init_debug_log();
+        watcall<0x4B2E50, int>();
         call_debug_log("Fallout is hooked!");
     }
 }
