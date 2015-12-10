@@ -36,10 +36,14 @@ GLOBAL(HMODULE,        gHModDDraw,     0x53A298);
 GLOBAL(HMODULE,        gHModDInput,    0x53A29C);
 GLOBAL(HMODULE,        gHModDSound,    0x53A2A0);
 
+// DirectX COM Factory Functions
+GLOBAL(void*,          gFPDDCreate,    0x53A274);
+GLOBAL(void*,          gFPDICreate,    0x53A278);
+GLOBAL(void*,          gFPDSCreate,    0x53A27C);
+
 // DirectX Instances
-GLOBAL(void*,          gHDDraw,        0x53A274);
-GLOBAL(void*,          gHDInput,       0x53A278);
-GLOBAL(void*,          gHDSound,       0x53A27C);
+typedef void * LPDIRECTDRAW;
+GLOBAL(LPDIRECTDRAW,   gHDDraw,        0x539DE0);
 
 // Window Instance
 GLOBAL(HWND,           gWindow,        0x53A280);
@@ -293,24 +297,24 @@ int init_directx() {
         gHModDDraw = LoadLibraryA("DDRAW.DLL");
         if (! gHModDDraw)
             break;
-        gHDDraw = GetProcAddress(gHModDDraw, "DirectDrawCreate");
-        if (! gHDDraw)
+        gFPDDCreate = GetProcAddress(gHModDDraw, "DirectDrawCreate");
+        if (! gFPDDCreate)
             break;
 
         // Load direct input library
         gHModDInput = LoadLibraryA("DINPUT.DLL");
         if (! gHModDInput)
             break;
-        gHDInput = GetProcAddress(gHModDInput, "DirectInputCreateA");
-        if (! gHDInput)
+        gFPDICreate = GetProcAddress(gHModDInput, "DirectInputCreateA");
+        if (! gFPDICreate)
             break;
 
         // Load direct sound library
         gHModDSound = LoadLibraryA("DSOUND.DLL");
         if (! gHModDSound)
             break;
-        gHDSound = GetProcAddress(gHModDSound, "DirectSoundCreate");
-        if (! gHDSound)
+        gFPDSCreate = GetProcAddress(gHModDSound, "DirectSoundCreate");
+        if (! gFPDSCreate)
             break;
 
         // Unknown?
