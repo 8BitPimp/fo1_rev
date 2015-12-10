@@ -5,7 +5,7 @@
 template <uint32_t offset,
           typename ret_type>
 ret_type watcall() {
-    static const char * dst = (const char *) offset;
+    static const void * dst = (const void *) offset;
     ret_type ret_val;
     __asm call dst
     __asm mov ret_val, eax
@@ -17,7 +17,7 @@ template <uint32_t offset,
           typename ret_type,
           typename type_a>
 ret_type watcall(type_a a) {
-    static const char * dst = (const char *) offset;
+    static const void * dst = (const void *) offset;
     ret_type ret_val;
     __asm mov eax, a
     __asm call dst
@@ -31,7 +31,7 @@ template <uint32_t offset,
           typename type_a,
           typename type_b>
 ret_type watcall(type_a a, type_b b) {
-    static const char * dst = (const char *) offset;
+    static const void * dst = (const void *) offset;
     ret_type ret_val;
     __asm mov eax, a
     __asm mov edx, b
@@ -47,7 +47,7 @@ template <uint32_t offset,
           typename type_b,
           typename type_c>
 ret_type watcall(type_a a, type_b b, type_c c) {
-    static const char * dst = (const char *) offset;
+    static const void * dst = (const void *) offset;
     ret_type ret_val;
     __asm mov eax, a
     __asm mov edx, b
@@ -65,7 +65,7 @@ template <uint32_t offset,
           typename type_c,
           typename type_d>
 ret_type watcall(type_a a, type_b b, type_c c, type_d d) {
-    static const char * dst = (const char *) offset;
+    static const void * dst = (const void *) offset;
     ret_type ret_val;
     __asm mov eax, a
     __asm mov edx, b
