@@ -7,6 +7,11 @@
 
 namespace {
 
+struct unknown1_t {
+    int    a_;
+    void * b_;
+};
+
 // Call fallouts debug log function
 __declspec(naked)
 void call_debug_log(const char * fmt, ...) {
@@ -18,7 +23,8 @@ void call_debug_log(const char * fmt, ...) {
 #define STRING(NAME, OFFSET) const char * NAME = (const char *)OFFSET
 
 // Winmain Globals
-STRING(gWN95Mutex, 0x4FE214 );
+STRING(gWN95Mutex,     0x4FE214 );
+
 GLOBAL(HANDLE,         gMutex,         0x53A294);
 GLOBAL(HINSTANCE,      gHInstance,     0x53A284);
 GLOBAL(int,            gCmdShow,       0x53A28C);
@@ -41,24 +47,44 @@ GLOBAL(HWND,           gWindow,        0x53A280);
 } // namespace {}
 
 // original @ 0x4725E8
-int impl_4725E8(uint64_t * arg) {
+int impl_4725E8(int a, void * b) {
 
     // Create autorun mutex
-    if (watcall<0x413450, int>(arg) == 0) {
+    if (watcall<int, 0x413450>(a, b) == 0) {
         return 1;
     }
 
-    if (watcall<0x4728CC, int>(arg) != 1) {
+    // Startup subsystems
+    if (watcall<int, 0x4728C9>(a, b) != 1) {
         return 1;
     }
 
-    watcall<0x4460C0, int>(1, 1);
-    watcall<0x4460C0, int>(2, 0);
+    watcall<0x4460C0>(0, 1);
+    watcall<0x4460C0>(2, 0);
 
     // Load color.pal ?
-    if (watcall<0x472F80, int>() == 0) {
-
+    if (watcall<int, 0x472F80>() != 0) {
+        // Abort
+        watcall<0x4483E4>();
+        watcall<0x472B3C>();
+        watcall<0x43B654>();
+        watcall<0x413490>();
+        return 0;
     }
+
+    int local = 1;
+
+    // 0x47263C
+    do {
+        watcall<0x4B6548>();
+        watcall<0x448338>("07desert", 0xB, &local, "language_filter");
+        watcall<0x473378>(1, "preferences");
+        watcall<0x4B4B88>();
+
+        local = watcall<int, 0x47341C>();
+        watcall<0x4B4D70>();
+    }
+    while (false);
 
     return 0;
 }
@@ -289,7 +315,7 @@ int init_directx() {
 
         // Unknown?
         void * callback = (void*) 0x4C9F18;
-        watcall<0x4CD0F1, int>(callback);
+        watcall<0x4CD0F1>(callback);
 
         // Success
         return 1;
@@ -297,7 +323,7 @@ int init_directx() {
     while (false);
 
     // Free any loaded modules
-    watcall<0x4C9F18, int>();
+    watcall<0x4C9F18>();
 
     // Show error message
     const char * capt = (const char *) 0x4FE2EC;
@@ -316,15 +342,10 @@ void place_hooks() {
     // Enable the debug log (debug.log)
     // note: must export env var $DEBUGACTIVE="log"
     if (getenv("DEBUGACTIVE")) {
-        watcall<0x4B2E50, int>();
+        watcall<0x4B2E50>();
         call_debug_log("Fallout is hooked!");
     }
 }
-
-struct unknown1_t {
-    void * a_;
-    int    b_;
-};
 
 // original @ 0x4C9C90
 int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
@@ -370,24 +391,28 @@ int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
     // Unknown?
     unknown1_t local;
     ZeroMemory(&local, sizeof(local));
-    if (watcall<0x4CE0B4, int>(&local, lpCmdLine) == 0) {
+    if (watcall<int, 0x4CE0B4>(&local, lpCmdLine) == 0) {
         CloseHandle(gMutex);
         return 1;
     }
 
     // Unknown?
-    watcall<0x4CE420, int>(1, 0x4C9F84, hInstance);
-    watcall<0x4CE420, int>(3, 0x4C9F84, hInstance);
-    watcall<0x4CE420, int>(5, 0x4C9F84, (void*) 1);
+    watcall<0x4CE420>(1, 0x4C9F84, hInstance);
+    watcall<0x4CE420>(3, 0x4C9F84, hInstance);
+    watcall<0x4CE420>(5, 0x4C9F84, (void*) 1);
 
     // Unknown?
     g53A290 = 1;
 
     // Main game jumpoff point
-    watcall<0x4725E8, int>(local.a_, local.b_);
+#if 0
+    impl_4725E8(local.a_, local.b_);
+#else
+    watcall<0x4725E8>(local.a_, local.b_);
+#endif
 
     // Cleanup
-    watcall<0x4CE24C, int>(&local);
+    watcall<0x4CE24C>(&local);
 
     return 0;
 }
