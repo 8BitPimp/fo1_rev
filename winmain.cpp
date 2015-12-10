@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <stdlib.h>
 #include "hook.h"
+#include "watcall.h"
 
 namespace {
 
@@ -49,7 +50,6 @@ void call_4CD0F1(void * cb) {
     __asm CALL dst;
 }
 
-// Enable debug log
 void call_init_debug_log() {
     static const void * dst = (void*) 0x4B2E50;
     __asm CALL dst
@@ -70,6 +70,43 @@ void call_4C3654(int arg) {
 void call_4CF800(int arg) {
     static const void * dst = (void*) 0x4CF800;
     __asm CALL dst
+}
+
+// Create autorun mutex
+int call_413450(uint64_t * arg) {
+    static const void * dst = (void*) 0x413450;
+    int ret_val = 0;
+    __asm MOV eax, arg
+    __asm CALL dst
+    __asm MOV ret_val, eax
+    return ret_val;
+}
+
+int call_4728CC(uint64_t * arg) {
+    static const void * dst = (void*) 0x4728CC;
+    int ret_val = 0;
+    __asm MOV eax, arg
+    __asm CALL dst
+    __asm MOV ret_val, eax
+    return ret_val;
+}
+
+int call_4460C0(int a, int b) { 
+    static const void * dst = (void*) 0x4460C0;
+    int ret_val = 0;
+    __asm MOV eax, a
+    __asm MOV edx, b
+    __asm CALL dst
+    __asm MOV ret_val, eax
+    return ret_val;
+}
+
+int call_472F80() {
+    static const void * dst = (void*) 0x472F80;
+    int ret_val = 0;
+    __asm CALL dst
+    __asm MOV ret_val, eax
+    return ret_val;
 }
 
 // Call fallouts debug log function
@@ -102,6 +139,30 @@ HWND        * gWindow       = (HWND*)           0x53A280;
 
 } // namespace {}
 
+// original @ 0x4725E8
+int impl_4725E8(uint64_t * arg) {
+
+    // Create autorun mutex
+    if (watcall<0x413450, int>(arg) == 0) {
+        return 1;
+    }
+
+    if (watcall<0x4728CC, int>(arg) != 1) {
+        return 1;
+    }
+
+    watcall<0x4460C0, int>(1, 1);
+    watcall<0x4460C0, int>(2, 0);
+
+    // Load color.pal ?
+    if (watcall<0x472F80, int>() == 0) {
+        
+    }
+
+    return 0;
+}
+
+// original @ 0x4C9F8C
 LRESULT __stdcall window_proc(HWND hwnd,
                               UINT uMsg,
                               WPARAM wParam,
@@ -120,13 +181,13 @@ LRESULT __stdcall window_proc(HWND hwnd,
 
         // Window is being activated
         if (wParam == TRUE) {
-            call_4B43FC(1);
+            watcall<0x4B43FC, int>(1);
             int * dw_672170 = (int*) 0x672170;
-            call_4C3654(*dw_672170);
+            watcall<0x4C3654, int>(*dw_672170);
         }
         // Window is being deactivated
         else {
-            call_4B43FC(0);
+            watcall<0x4B43FC, int>(0);
         }
         return 0;
         }
@@ -140,7 +201,7 @@ LRESULT __stdcall window_proc(HWND hwnd,
                 wndRect.right-1,
                 wndRect.bottom-1
             };
-            call_4C3654((int) &size);
+            watcall<0x4C3654, int>((int) &size);
         }
         }
         break;
@@ -153,7 +214,7 @@ LRESULT __stdcall window_proc(HWND hwnd,
         break;
 
     case (WM_DESTROY):
-        call_4CF800(0);
+        watcall<0x4CF800, int>(0);
         break;
 
     case (WM_SYSCOMMAND):
@@ -167,6 +228,7 @@ LRESULT __stdcall window_proc(HWND hwnd,
     return DefWindowProcA(hwnd, uMsg, wParam, lParam);
 }
 
+// original @ 0x4C9DF4
 int check_win_version() {
 
     // Get os info
@@ -199,6 +261,7 @@ int check_win_version() {
     return 0;
 }
 
+// original @ 0x4C9D84
 int init_wndclass(HINSTANCE hinst) {
 
     // Create window class structure
@@ -218,6 +281,7 @@ int init_wndclass(HINSTANCE hinst) {
     return res & 0xffff;
 }
 
+// original @ 0x4B5738
 int create_window() {
 
     // Early exit if the window already exists
@@ -293,6 +357,7 @@ int hook_create_window() {
     __asm RET
 }
 
+// original @ 0x4C9E60
 int init_directx() {
 
     do {
@@ -322,7 +387,7 @@ int init_directx() {
 
         // Unknown?
         void * callback = (void*) 0x4C9F18;
-        call_4CD0F1(callback);
+        watcall<0x4CD0F1, int>(callback);
 
         // Success
         return 1;
@@ -330,7 +395,7 @@ int init_directx() {
     while (false);
 
     // Free any loaded modules
-    call_4C9F18();
+    watcall<0x4C9F18, int>();
 
     // Show error message
     const char * capt = (const char *) 0x4FE2EC;
@@ -354,6 +419,7 @@ void place_hooks() {
     }
 }
 
+// original @ 0x4C9C90
 int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
                         _In_ HINSTANCE hPrevInstance,
                         _In_ LPSTR     lpCmdLine,
@@ -396,24 +462,24 @@ int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
 
     // Unknown?
     uint64_t local = 0;
-    if (call_4CE0B4(&local, lpCmdLine) == 0) {
+    if (watcall<0x4CE0B4, int>(&local, lpCmdLine) == 0) {
         CloseHandle(*gMutex);
         return 1;
     }
 
     // Unknown?
-    call_4CE420(1, 0x4C9F84, hInstance);
-    call_4CE420(3, 0x4C9F84, hInstance);
-    call_4CE420(5, 0x4C9F84, (void*) 1);
+    watcall<0x4CE420, int>(1, 0x4C9F84, hInstance);
+    watcall<0x4CE420, int>(3, 0x4C9F84, hInstance);
+    watcall<0x4CE420, int>(5, 0x4C9F84, (void*) 1);
 
     // Unknown?
     *g53A290 = 1;
 
     // Main game jumpoff point
-    call_4725E8(&local);
+    watcall<0x4725E8, int>(&local);
 
     // Cleanup
-    call_4CE24C(&local);
+    watcall<0x4CE24C, int>(&local);
 
     return 0;
 }
