@@ -3,74 +3,9 @@
 #include <Windows.h>
 #include <stdlib.h>
 #include "hook.h"
+#include "watcall.h"
 
 namespace {
-
-int call_4CE0B4(uint64_t * val, char * cmd_args) {
-    static const void * dst = (void*) 0x4CE0B4;
-    int rval = 0;
-    __asm MOV EAX, val
-    __asm MOV EDX, cmd_args
-    __asm CALL dst
-    __asm MOV rval, EAX
-    return rval;
-}
-
-void call_4CE420(int _eax, int _edx, void * _ebx) {
-    static const void * dst = (void*) 0x4CE420;
-    __asm MOV EAX, _eax
-    __asm MOV EDX, _edx
-    __asm MOV EBX, _ebx
-    __asm CALL dst
-}
-
-void call_4725E8(uint64_t * arg) {
-    static const void * dst = (void*) 0x4725E8;
-    __asm MOV EAX, arg
-    __asm MOV EDX, [EAX+4]
-    __asm MOV EAX, [EAX]
-    __asm CALL dst
-}
-
-void call_4CE24C(uint64_t * arg) {
-    static const void * dst = (void*) 0x4CE24C;
-    __asm MOV EAX, arg
-    __asm CALL dst
-}
-
-void call_4C9F18() {
-    static const void * dst = (void*) 0x4C9F18;
-    __asm CALL dst;
-}
-
-void call_4CD0F1(void * cb) {
-    static const void * dst = (void*) 0x4CD0F1;
-    __asm MOV EAX, cb
-    __asm CALL dst;
-}
-
-// Enable debug log
-void call_init_debug_log() {
-    static const void * dst = (void*) 0x4B2E50;
-    __asm CALL dst
-}
-
-void call_4B43FC(int arg) {
-    static const void * dst = (void*) 0x4B43FC;
-    __asm MOV eax, arg
-    __asm CALL dst
-}
-
-void call_4C3654(int arg) {
-    static const void * dst = (void*) 0x4C3654;
-    __asm MOV eax, arg
-    __asm CALL dst
-}
-
-void call_4CF800(int arg) {
-    static const void * dst = (void*) 0x4CF800;
-    __asm CALL dst
-}
 
 // Call fallouts debug log function
 __declspec(naked)
@@ -79,29 +14,56 @@ void call_debug_log(const char * fmt, ...) {
     __asm JMP dst
 }
 
+#define GLOBAL(TYPE, NAME, OFFSET)  TYPE & NAME = *(TYPE *)OFFSET
+#define STRING(NAME, OFFSET) const char * NAME = (const char *)OFFSET
+
 // Winmain Globals
-const char  * gWN95Mutex    = (const char*)     0x4FE214;
-HANDLE      * gMutex        = (HANDLE*)         0x53A294;
-HINSTANCE   * gHInstance    = (HINSTANCE*)      0x53A284;
-int         * gCmdShow      = (int*)            0x53A28C;
-const char ** gCmdArgs      = (const char**)    0x53A288;
-int *         g53A290       = (int*)            0x53A290;
+STRING(gWN95Mutex, 0x4FE214 );
+GLOBAL(HANDLE,         gMutex,         0x53A294);
+GLOBAL(HINSTANCE,      gHInstance,     0x53A284);
+GLOBAL(int,            gCmdShow,       0x53A28C);
+GLOBAL(const char*,    gCmdArgs,       0x53A288);
+GLOBAL(int,            g53A290,        0x53A290);
 
 // DirectX Modules
-HMODULE     * gHModDDraw    = (HMODULE*)        0x53A298;
-HMODULE     * gHModDInput   = (HMODULE*)        0x53A29C;
-HMODULE     * gHModDSound   = (HMODULE*)        0x53A2A0;
+GLOBAL(HMODULE,        gHModDDraw,     0x53A298);
+GLOBAL(HMODULE,        gHModDInput,    0x53A29C);
+GLOBAL(HMODULE,        gHModDSound,    0x53A2A0);
 
 // DirectX Instances
-void       ** gHDDraw       = (void**)          0x53A274;
-void       ** gHDInput      = (void**)          0x53A278;
-void       ** gHDSound      = (void**)          0x53A27C;
+GLOBAL(void*,          gHDDraw,        0x53A274);
+GLOBAL(void*,          gHDInput,       0x53A278);
+GLOBAL(void*,          gHDSound,       0x53A27C);
 
 // Window Instance
-HWND        * gWindow       = (HWND*)           0x53A280;
+GLOBAL(HWND,           gWindow,        0x53A280);
 
 } // namespace {}
 
+// original @ 0x4725E8
+int impl_4725E8(uint64_t * arg) {
+
+    // Create autorun mutex
+    if (watcall<0x413450, int>(arg) == 0) {
+        return 1;
+    }
+
+    if (watcall<0x4728CC, int>(arg) != 1) {
+        return 1;
+    }
+
+    watcall<0x4460C0, int>(1, 1);
+    watcall<0x4460C0, int>(2, 0);
+
+    // Load color.pal ?
+    if (watcall<0x472F80, int>() == 0) {
+
+    }
+
+    return 0;
+}
+
+// original @ 0x4C9F8C
 LRESULT __stdcall window_proc(HWND hwnd,
                               UINT uMsg,
                               WPARAM wParam,
@@ -115,18 +77,18 @@ LRESULT __stdcall window_proc(HWND hwnd,
 
     switch (uMsg) {
     case (WM_ACTIVATEAPP): {
-        int * dw_53A290 = (int*) 0x53A290;
+        int *dw_53A290 = (int*) 0x53A290;
         *dw_53A290 = wParam;
 
         // Window is being activated
         if (wParam == TRUE) {
-            call_4B43FC(1);
+            watcall<0x4B43FC, int>(1);
             int * dw_672170 = (int*) 0x672170;
-            call_4C3654(*dw_672170);
+            watcall<0x4C3654, int>(*dw_672170);
         }
         // Window is being deactivated
         else {
-            call_4B43FC(0);
+            watcall<0x4B43FC, int>(0);
         }
         return 0;
         }
@@ -140,20 +102,20 @@ LRESULT __stdcall window_proc(HWND hwnd,
                 wndRect.right-1,
                 wndRect.bottom-1
             };
-            call_4C3654((int) &size);
+            watcall<0x4C3654, int>((int)&size);
         }
         }
         break;
 
     case (WM_SETCURSOR):
-        if (hwnd == *gWindow) {
+        if (hwnd == gWindow) {
             SetCursor(0);
             return 1;
         }
         break;
 
     case (WM_DESTROY):
-        call_4CF800(0);
+        watcall<0x4CF800, int>(0);
         break;
 
     case (WM_SYSCOMMAND):
@@ -167,6 +129,7 @@ LRESULT __stdcall window_proc(HWND hwnd,
     return DefWindowProcA(hwnd, uMsg, wParam, lParam);
 }
 
+// original @ 0x4C9DF4
 int check_win_version() {
 
     // Get os info
@@ -191,14 +154,15 @@ int check_win_version() {
     while (false);
 
     // Display error message
-    const char * capt = (const char *) 0x4FE22C;
-    const char * text = (const char *) 0x4FE244;
+    const char * capt = (const char *)0x4FE22C;
+    const char * text = (const char *)0x4FE244;
     MessageBoxA(nullptr, text, capt, 0x10);
 
     // Fail
     return 0;
 }
 
+// original @ 0x4C9D84
 int init_wndclass(HINSTANCE hinst) {
 
     // Create window class structure
@@ -206,7 +170,7 @@ int init_wndclass(HINSTANCE hinst) {
     ZeroMemory(&wndClass, sizeof(wndClass));
 
     // Fill window class properties
-    wndClass.hIcon          = LoadIconA(hinst, (const char *) 0x63);
+    wndClass.hIcon          = LoadIconA(hinst, (const char *)0x63);
     wndClass.lpszClassName  = "GNW95 Class";
     wndClass.lpfnWndProc    = window_proc;
     wndClass.hInstance      = hinst;
@@ -218,10 +182,11 @@ int init_wndclass(HINSTANCE hinst) {
     return res & 0xffff;
 }
 
+// original @ 0x4B5738
 int create_window() {
 
     // Early exit if the window already exists
-    if (*gWindow != nullptr) {
+    if (gWindow != nullptr) {
         return 0;
     }
 
@@ -247,27 +212,27 @@ int create_window() {
     const char * wnd_name = (const char *) 0x6B0760;
 
     // Create the main app window
-    *gWindow = CreateWindowExA(style1,
-                               "GNW95 Class",
-                               wnd_name,
-                               style2,
-                               x,
-                               y,
-                               width,
-                               height,
-                               nullptr,
-                               nullptr,
-                               *gHInstance,
-                               nullptr);
+    gWindow = CreateWindowExA(style1,
+                              "GNW95 Class",
+                              wnd_name,
+                              style2,
+                              x,
+                              y,
+                              width,
+                              height,
+                              nullptr,
+                              nullptr,
+                              gHInstance,
+                              nullptr);
 
-    if (*gWindow == nullptr) {
+    if (gWindow == nullptr) {
         // Fail
         return -1;
     }
 
     // Run winproc and bring into focus
-    UpdateWindow(*gWindow);
-    SetFocus(*gWindow);
+    UpdateWindow(gWindow);
+    SetFocus(gWindow);
 
     // Success
     return 0;
@@ -275,6 +240,7 @@ int create_window() {
 
 __declspec(naked)
 int hook_create_window() {
+    // Note: watcom code calls into this function
     // callee save
     __asm PUSH EDX
     __asm PUSH ECX
@@ -293,36 +259,37 @@ int hook_create_window() {
     __asm RET
 }
 
+// original @ 0x4C9E60
 int init_directx() {
 
     do {
         // Load direct draw library
-        *gHModDDraw = LoadLibraryA("DDRAW.DLL");
-        if (! *gHModDDraw)
+        gHModDDraw = LoadLibraryA("DDRAW.DLL");
+        if (! gHModDDraw)
             break;
-        *gHDDraw = GetProcAddress(*gHModDDraw, "DirectDrawCreate");
-        if (! *gHDDraw)
+        gHDDraw = GetProcAddress(gHModDDraw, "DirectDrawCreate");
+        if (! gHDDraw)
             break;
 
         // Load direct input library
-        *gHModDInput = LoadLibraryA("DINPUT.DLL");
-        if (! *gHModDInput)
+        gHModDInput = LoadLibraryA("DINPUT.DLL");
+        if (! gHModDInput)
             break;
-        *gHDInput = GetProcAddress(*gHModDInput, "DirectInputCreateA");
-        if (! *gHDInput)
+        gHDInput = GetProcAddress(gHModDInput, "DirectInputCreateA");
+        if (! gHDInput)
             break;
 
         // Load direct sound library
-        *gHModDSound = LoadLibraryA("DSOUND.DLL");
-        if (! *gHModDSound)
+        gHModDSound = LoadLibraryA("DSOUND.DLL");
+        if (! gHModDSound)
             break;
-        *gHDSound = GetProcAddress(*gHModDSound, "DirectSoundCreate");
-        if (! *gHDSound)
+        gHDSound = GetProcAddress(gHModDSound, "DirectSoundCreate");
+        if (! gHDSound)
             break;
 
         // Unknown?
         void * callback = (void*) 0x4C9F18;
-        call_4CD0F1(callback);
+        watcall<0x4CD0F1, int>(callback);
 
         // Success
         return 1;
@@ -330,7 +297,7 @@ int init_directx() {
     while (false);
 
     // Free any loaded modules
-    call_4C9F18();
+    watcall<0x4C9F18, int>();
 
     // Show error message
     const char * capt = (const char *) 0x4FE2EC;
@@ -349,11 +316,17 @@ void place_hooks() {
     // Enable the debug log (debug.log)
     // note: must export env var $DEBUGACTIVE="log"
     if (getenv("DEBUGACTIVE")) {
-        call_init_debug_log();
+        watcall<0x4B2E50, int>();
         call_debug_log("Fallout is hooked!");
     }
 }
 
+struct unknown1_t {
+    void * a_;
+    int    b_;
+};
+
+// original @ 0x4C9C90
 int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
                         _In_ HINSTANCE hPrevInstance,
                         _In_ LPSTR     lpCmdLine,
@@ -363,7 +336,7 @@ int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
     place_hooks();
 
     // Create global mutex
-    *gMutex = CreateMutexA(nullptr, TRUE, gWN95Mutex);
+    gMutex = CreateMutexA(nullptr, TRUE, gWN95Mutex);
     if (GetLastError == 0) {
         return 0;
     }
@@ -373,47 +346,48 @@ int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
 
     // Register window class
     if (init_wndclass(hInstance) == 0) {
-        CloseHandle(*gMutex);
+        CloseHandle(gMutex);
         return 0;
     }
 
     // Check for compatable windows version
     if (check_win_version() == 0) {
-        CloseHandle(*gMutex);
+        CloseHandle(gMutex);
         return 0;
     }
 
     // Load directx modules and exported create functions
     if (init_directx() != 1) {
-        CloseHandle(*gMutex);
+        CloseHandle(gMutex);
         return 0;
     }
 
     // Save global winmain params
-    *gHInstance = hInstance;
-    *gCmdArgs   = lpCmdLine;
-    *gCmdShow   = nCmdShow;
+    gHInstance = hInstance;
+    gCmdArgs   = lpCmdLine;
+    gCmdShow   = nCmdShow;
 
     // Unknown?
-    uint64_t local = 0;
-    if (call_4CE0B4(&local, lpCmdLine) == 0) {
-        CloseHandle(*gMutex);
+    unknown1_t local;
+    ZeroMemory(&local, sizeof(local));
+    if (watcall<0x4CE0B4, int>(&local, lpCmdLine) == 0) {
+        CloseHandle(gMutex);
         return 1;
     }
 
     // Unknown?
-    call_4CE420(1, 0x4C9F84, hInstance);
-    call_4CE420(3, 0x4C9F84, hInstance);
-    call_4CE420(5, 0x4C9F84, (void*) 1);
+    watcall<0x4CE420, int>(1, 0x4C9F84, hInstance);
+    watcall<0x4CE420, int>(3, 0x4C9F84, hInstance);
+    watcall<0x4CE420, int>(5, 0x4C9F84, (void*) 1);
 
     // Unknown?
-    *g53A290 = 1;
+    g53A290 = 1;
 
     // Main game jumpoff point
-    call_4725E8(&local);
+    watcall<0x4725E8, int>(local.a_, local.b_);
 
     // Cleanup
-    call_4CE24C(&local);
+    watcall<0x4CE24C, int>(&local);
 
     return 0;
 }
