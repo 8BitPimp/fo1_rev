@@ -419,6 +419,11 @@ void place_hooks() {
     }
 }
 
+struct unknown1_t {
+    void * a_;
+    int    b_;
+};
+
 // original @ 0x4C9C90
 int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
                         _In_ HINSTANCE hPrevInstance,
@@ -461,7 +466,8 @@ int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
     *gCmdShow   = nCmdShow;
 
     // Unknown?
-    uint64_t local = 0;
+    unknown1_t local;
+    ZeroMemory(&local, sizeof(local));
     if (watcall<0x4CE0B4, int>(&local, lpCmdLine) == 0) {
         CloseHandle(*gMutex);
         return 1;
@@ -476,7 +482,7 @@ int CALLBACK fo_WinMain(_In_ HINSTANCE hInstance,
     *g53A290 = 1;
 
     // Main game jumpoff point
-    watcall<0x4725E8, int>(&local);
+    watcall<0x4725E8, int>(local.a_, local.b_);
 
     // Cleanup
     watcall<0x4CE24C, int>(&local);
