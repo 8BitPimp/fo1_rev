@@ -65,6 +65,7 @@ GLOBAL(IDirectSound*,       gHDSound,       0x53A27C);
 
 GLOBAL(IDirectDrawPalette*, gPalette,       0x539DEC);
 GLOBAL(IDirectDrawSurface*, gSurface,       0x539DE4);
+GLOBAL(IDirectDrawSurface*, gSurfaceAlt,    0x539DE8);
 
 // Window Instance
 GLOBAL(HWND,                gWindow,        0x53A280);
@@ -101,10 +102,12 @@ int impl_4B57F8(int width, int height, int bpp) {
     }
 
     // Set fullscreen display mode
-    if (gHDDraw->SetDisplayMode(width,
-                                height,
-                                bpp) != DD_OK) {
-        return -1;
+    if (FULLSCREEN) {
+        if (gHDDraw->SetDisplayMode(width,
+                                    height,
+                                    bpp) != DD_OK) {
+            return -1;
+        }
     }
 
     // Init surface descriptor
@@ -122,7 +125,7 @@ int impl_4B57F8(int width, int height, int bpp) {
     }
 
     // Unknown?
-    *(IDirectDrawSurface**)0x539DE8 = gSurface;
+    gSurfaceAlt = gSurface;
 
     PALETTEENTRY temp[256];
 
@@ -160,20 +163,21 @@ int impl_4B57F8(int width, int height, int bpp) {
 __declspec (naked)
 int hook_4B57F8() {
     // push callee save
+    __asm push ecx
     __asm push esi
     __asm push edi
-    __asm push ecx
     __asm push ebp
     // args
     __asm push ebx
     __asm push edx
     __asm push eax
     __asm call impl_4B57F8
+    __asm add esp, 12
     // pop callee save
     __asm pop ebp
-    __asm pop ecx
     __asm pop edi
     __asm pop esi
+    __asm pop ecx
     // return result in eax
     __asm ret
 }
@@ -491,17 +495,6 @@ void place_hooks() {
         watcall<0x4B2E50>();
         call_debug_log("Fallout is hooked!");
     }
-
-#if 0
-    // gHDDraw->SetCooperativeLevel(gWindow, DDSCL_NORMAL)
-    if (read<uint16_t>(0x4B5850) == /* push 11h */ 0x116A) {
-        uint16_t data = /* push 08h */ 0x086A;
-        patch((void*)0x4B5850, &data, sizeof(data));
-    }
-
-    // Nop out gHDDraw->SetDisplayMode()
-    nop(0x4B586C, 0x4B587A - 0x4B586C);
-#endif
 }
 
 // original @ 0x4C9C90
