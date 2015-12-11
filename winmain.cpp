@@ -13,10 +13,12 @@
 
 #define assert(X) {if (!(X)) __debugbreak();}
 
+// Toggle experimental windowed mode
 #define FULLSCREEN 1
 
 namespace {
 
+// Struct used in WinMain
 struct unknown1_t {
     int    a_;
     void * b_;
@@ -29,47 +31,50 @@ void call_debug_log(const char * fmt, ...) {
     __asm JMP dst
 }
 
+// Direct X Typedefs
+typedef HRESULT (__stdcall * DirectDrawCreate_t)(GUID * lpGUID,
+                                                 LPDIRECTDRAW * lplpDD,
+                                                 IUnknown * pUnkOuter );
+
 #define GLOBAL(TYPE, NAME, OFFSET)  TYPE & NAME = *(TYPE *)OFFSET
 #define STRING(NAME, OFFSET) const char * NAME = (const char *)OFFSET
 
 // Winmain Globals
-STRING(gWN95Mutex,     0x4FE214 );
+STRING(gWN95Mutex,          0x4FE214 );
 
-GLOBAL(HANDLE,         gMutex,         0x53A294);
-GLOBAL(HINSTANCE,      gHInstance,     0x53A284);
-GLOBAL(int,            gCmdShow,       0x53A28C);
-GLOBAL(const char*,    gCmdArgs,       0x53A288);
-GLOBAL(int,            g53A290,        0x53A290);
+GLOBAL(HANDLE,              gMutex,         0x53A294);
+GLOBAL(HINSTANCE,           gHInstance,     0x53A284);
+GLOBAL(int,                 gCmdShow,       0x53A28C);
+GLOBAL(const char*,         gCmdArgs,       0x53A288);
+GLOBAL(int,                 g53A290,        0x53A290);
 
 // DirectX Modules
-GLOBAL(HMODULE,        gHModDDraw,     0x53A298);
-GLOBAL(HMODULE,        gHModDInput,    0x53A29C);
-GLOBAL(HMODULE,        gHModDSound,    0x53A2A0);
+GLOBAL(HMODULE,             gHModDDraw,     0x53A298);
+GLOBAL(HMODULE,             gHModDInput,    0x53A29C);
+GLOBAL(HMODULE,             gHModDSound,    0x53A2A0);
 
 // DirectX COM Factory Functions
-typedef HRESULT (__stdcall * DirectDrawCreate_t)(GUID * lpGUID,
-                                                 LPDIRECTDRAW * lplpDD,
-                                                 IUnknown * pUnkOuter );
-GLOBAL(void*,          gFPDDCreate,    0x53A274);
-GLOBAL(void*,          gFPDICreate,    0x53A278);
-GLOBAL(void*,          gFPDSCreate,    0x53A27C);
+GLOBAL(void*,               gFPDDCreate,    0x53A274);
+GLOBAL(void*,               gFPDICreate,    0x53A278);
+GLOBAL(void*,               gFPDSCreate,    0x53A27C);
 
 // DirectX Instances
-GLOBAL(IDirectDraw*,        gHDDraw,     0x539DE0);
-GLOBAL(IDirectInputA*,      gHDInput,    0x53A278);
-GLOBAL(IDirectSound*,       gHDSound,    0x53A27C);
+GLOBAL(IDirectDraw*,        gHDDraw,        0x539DE0);
+GLOBAL(IDirectInputA*,      gHDInput,       0x53A278);
+GLOBAL(IDirectSound*,       gHDSound,       0x53A27C);
 
-GLOBAL(IDirectDrawPalette*, gPalette,    0x539DEC);
-GLOBAL(IDirectDrawSurface*, gSurface,    0x539DE4);
+GLOBAL(IDirectDrawPalette*, gPalette,       0x539DEC);
+GLOBAL(IDirectDrawSurface*, gSurface,       0x539DE4);
 
 // Window Instance
-GLOBAL(HWND,           gWindow,        0x53A280);
+GLOBAL(HWND,                gWindow,        0x53A280);
 
 } // namespace {}
 
 // original @ 0x4B57F8
 int impl_4B57F8(int width, int height, int bpp) {
 
+    // If DirectDraw instance exists
     if (gHDDraw != nullptr ) {
         watcall<0x4B5EE8>();
         watcall<0x4B5A0C>(0ul);
@@ -77,43 +82,51 @@ int impl_4B57F8(int width, int height, int bpp) {
         return -1;
     }
 
+    // Create DirectDraw instance
     if (DirectDrawCreate_t(gFPDDCreate)(nullptr,
                                         &gHDDraw, 
                                         nullptr) != DD_OK) {
         return -1;
     }
 
+    // DirectDraw cooperative level to use
     DWORD coop_level = (FULLSCREEN)
                      ? DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE
                      : DDSCL_NORMAL;
 
+    // Set DirectDraw cooperative level
     if (gHDDraw->SetCooperativeLevel(gWindow,
                                      coop_level) != DD_OK) {
         return -1;
     }
 
+    // Set fullscreen display mode
     if (gHDDraw->SetDisplayMode(width,
                                 height,
                                 bpp) != DD_OK) {
         return -1;
     }
 
+    // Init surface descriptor
     DDSURFACEDESC desc;
     ZeroMemory(&desc, sizeof(desc));
     desc.dwSize         = sizeof(desc);
     desc.dwFlags        = DDSD_CAPS;
     desc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 
+    // Create primary disply surface
     if (gHDDraw->CreateSurface(&desc,
                                &gSurface,
                                nullptr) != DD_OK) {
         return -1;
     }
 
+    // Unknown?
     *(IDirectDrawSurface**)0x539DE8 = gSurface;
 
     PALETTEENTRY temp[256];
 
+    // Init a greyscale palette
     for (uint32_t i=0; i<256; ++i) {
         temp[i].peRed    = i;
         temp[i].peGreen  = i;
@@ -121,13 +134,16 @@ int impl_4B57F8(int width, int height, int bpp) {
         temp[i].peFlags  = 0;
     }
 
+    // If bit depth is 8 bits
     if (bpp == 8) {
+        // Init DirectDraw palette
         if (gHDDraw->CreatePalette(DDPCAPS_ALLOW256 | DDPCAPS_8BIT,
                                    temp,
                                    &gPalette,
                                    nullptr) != DD_OK) {
             return -1;
         }
+        // Attach palette to primary display surface
         if (gSurface->SetPalette(gPalette) != DD_OK) {
             return -1;
         }
@@ -136,23 +152,25 @@ int impl_4B57F8(int width, int height, int bpp) {
         assert(!"todo");
     }
 
+    // Success
     return 0;
 }
 
+// Trampoline into DirectDraw init function
 __declspec (naked)
 int hook_4B57F8() {
     // push callee save
     __asm push esi
     __asm push edi
     __asm push ecx
-    __asm push ebx
+    __asm push ebp
     // args
     __asm push ebx
     __asm push edx
     __asm push eax
     __asm call impl_4B57F8
     // pop callee save
-    __asm pop ebx
+    __asm pop ebp
     __asm pop ecx
     __asm pop edi
     __asm pop esi
@@ -384,6 +402,7 @@ __declspec(naked)
 int hook_create_window() {
     // Note: watcom code calls into this function
     // callee save
+    __asm PUSH EBP
     __asm PUSH EDX
     __asm PUSH ECX
     __asm PUSH EBX
@@ -397,6 +416,7 @@ int hook_create_window() {
     __asm POP EBX
     __asm POP ECX
     __asm POP EDX
+    __asm POP EBP
     // return with EAX
     __asm RET
 }
