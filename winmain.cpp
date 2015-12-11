@@ -73,7 +73,7 @@ GLOBAL(HWND,                gWindow,        0x53A280);
 } // namespace {}
 
 // original @ 0x4B57F8
-int impl_4B57F8(int width, int height, int bpp) {
+int init_ddraw(int width, int height, int bpp) {
 
     // If DirectDraw instance exists
     if (gHDDraw != nullptr ) {
@@ -157,29 +157,6 @@ int impl_4B57F8(int width, int height, int bpp) {
 
     // Success
     return 0;
-}
-
-// Trampoline into DirectDraw init function
-__declspec (naked)
-int hook_4B57F8() {
-    // push callee save
-    __asm push ecx
-    __asm push esi
-    __asm push edi
-    __asm push ebp
-    // args
-    __asm push ebx
-    __asm push edx
-    __asm push eax
-    __asm call impl_4B57F8
-    __asm add esp, 12
-    // pop callee save
-    __asm pop ebp
-    __asm pop edi
-    __asm pop esi
-    __asm pop ecx
-    // return result in eax
-    __asm ret
 }
 
 // original @ 0x4725E8
@@ -364,8 +341,8 @@ int create_window() {
     const DWORD y      = 0;
 #else
     // Windowed mode (Forced to full screen later...)
-    const DWORD style1 = WS_EX_CLIENTEDGE;
-    const DWORD style2 = WS_SYSMENU | WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+    const DWORD style1 = 0;
+    const DWORD style2 = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
     const DWORD width  = 640;
     const DWORD height = 480;
     const DWORD x      = CW_USEDEFAULT;
@@ -400,29 +377,6 @@ int create_window() {
 
     // Success
     return 0;
-}
-
-__declspec(naked)
-int hook_create_window() {
-    // Note: watcom code calls into this function
-    // callee save
-    __asm PUSH EBP
-    __asm PUSH EDX
-    __asm PUSH ECX
-    __asm PUSH EBX
-    __asm PUSH ESI
-    __asm PUSH EDI
-    // Bounce into our create window
-    __asm CALL create_window
-    // restore callee save
-    __asm POP EDI
-    __asm POP ESI
-    __asm POP EBX
-    __asm POP ECX
-    __asm POP EDX
-    __asm POP EBP
-    // return with EAX
-    __asm RET
 }
 
 // original @ 0x4C9E60
@@ -474,20 +428,76 @@ int init_directx() {
     return 0;
 }
 
-template <typename type_t>
-type_t read(uint32_t offset) {
-    type_t val = 0;
-    memcpy(&val, (void*)offset, sizeof(type_t));
-    return val;
+// original @ 0x4B568C
+int impl_4B568C(int width, int height, int bpp) {
+
+    // Create a window
+    if (create_window() == -1) {
+        return -1;
+    }
+
+    // Init direct draw
+    if (init_ddraw(width, height, bpp) == -1) {
+        return -1;
+    }
+
+    // Save the window size
+    int * unknown1 = (int*) 0x672170;
+    unknown1[0] = 0;
+    unknown1[1] = 0;
+    unknown1[2] = width-1;
+    unknown1[3] = height-1;
+
+    // Unknown?
+    watcall<0x4B5550>(1ul);
+
+    // If the bit depth is 8bpp
+    if (bpp == 8) {
+
+        // Unknown?
+        write(0x671F58, 0);
+        int temp = 0x4B60AC;
+        write(0x671F5C, temp);
+        write(0x672198, temp);
+    }
+    else {
+
+        // Unknown?
+        copy<int>(0x4B62A0, 0x672198);
+        copy<int>(0x4B6198, 0x671F5C);
+        copy<int>(0x4B630C, 0x671F58);
+    }
+
+    // Success
+    return 0;
+}
+
+__declspec (naked)
+int hook_4B568C() {
+    // push callee save
+    __asm push ecx
+    __asm push esi
+    __asm push edi
+    __asm push ebp
+    // args
+    __asm push ebx
+    __asm push edx
+    __asm push eax
+    __asm call impl_4B568C
+    __asm add esp, 12
+    // pop callee save
+    __asm pop ebp
+    __asm pop edi
+    __asm pop esi
+    __asm pop ecx
+    // return result in eax
+    __asm ret
 }
 
 void place_hooks() {
 
-    // Hook the create window function
-    hook((void*)0x4B5738, (void*)hook_create_window);
-
-    // Hook the direct draw init function
-    hook((void*)0x4B57F8, (void*)hook_4B57F8);
+    // Hook window setup routine
+    hook((void*)0x4B568C, (void*)hook_4B568C);
 
     // Enable the debug log (debug.log)
     // note: must export env var $DEBUGACTIVE="log"
