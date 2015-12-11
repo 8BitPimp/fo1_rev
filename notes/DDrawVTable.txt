@@ -1,34 +1,77 @@
-DIRECT DRAW VIRTUAL TABLE
+IDirectDraw Virtual Table
 
 OFFSET  NAME                    ARGS
 
-    00  QueryInterface          THIS, REFIID, LPVOID *
-    04  AddRef                  THIS,
-    08  Release                 THIS,
-    0c  Compact                 THIS,
-    10  CreateClipper           THIS, DWORD, LPDIRECTDRAWCLIPPER FAR*, IUnknown *
-    14  CreatePalette           THIS, DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE FAR*, IUnknown *
-    18  CreateSurface           THIS, LPDDSURFACEDESC2, LPDIRECTDRAWSURFACE7 *, IUnknown *
-    1c  DuplicateSurface        THIS, LPDIRECTDRAWSURFACE7, LPDIRECTDRAWSURFACE7 *
-    20  EnumDisplayModes        THIS, DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2
-    24  EnumSurfaces            THIS, DWORD, LPDDSURFACEDESC2, LPVOID,LPDDENUMSURFACESCALLBACK7
-    28  FlipToGDISurface        THIS,
-    2c  GetCaps                 THIS, LPDDCAPS, LPDDCAPS
-    30  GetDisplayMode          THIS, LPDDSURFACEDESC2
-    34  GetFourCCCodes          THIS, LPDWORD, LPDWORD
-    38  GetGDISurface           THIS, LPDIRECTDRAWSURFACE7 *
-    3c  GetMonitorFrequency     THIS, LPDWORD
-    40  GetScanLine             THIS, LPDWORD
-    44  GetVerticalBlankStatus  THIS, LPBOOL
-    48  Initialize              THIS, GUID *
-    4c  RestoreDisplayMode      THIS,
-    50  SetCooperativeLevel     THIS, HWND, DWORD
-    54  SetDisplayMode          THIS, DWORD, DWORD, DWORD, DWORD, DWORD
-    58  WaitForVerticalBlank    THIS, DWORD, HANDLE
-    5c  GetAvailableVidMem      THIS, LPDDSCAPS2, LPDWORD, LPDWORD
-    60  GetSurfaceFromDC        THIS, HDC, LPDIRECTDRAWSURFACE7 *
-    64  RestoreAllSurfaces      THIS,
-    68  TestCooperativeLevel    THIS,
-    6c  GetDeviceIdentifier     THIS, LPDDDEVICEIDENTIFIER2, DWORD
-    70  StartModeTest           THIS, LPSIZE, DWORD, DWORD
-    74  EvaluateMode            THIS, DWORD, DWORD *
+    00  QueryInterface          3 THIS, REFIID, LPVOID *
+    04  AddRef                  1 THIS
+    08  Release                 1 THIS
+    0c  Compact                 1 THIS
+    10  CreateClipper           4 THIS, DWORD, LPDIRECTDRAWCLIPPER *, IUnknown *
+    14  CreatePalette           5 THIS, DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE *, IUnknown *
+    18  CreateSurface           4 THIS, LPDDSURFACEDESC2, LPDIRECTDRAWSURFACE7 *, IUnknown *
+    1c  DuplicateSurface        3 THIS, LPDIRECTDRAWSURFACE7, LPDIRECTDRAWSURFACE7 *
+    20  EnumDisplayModes        5 THIS, DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2
+    24  EnumSurfaces            5 THIS, DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7
+    28  FlipToGDISurface        1 THIS,
+    2c  GetCaps                 3 THIS, LPDDCAPS, LPDDCAPS
+    30  GetDisplayMode          2 THIS, LPDDSURFACEDESC2
+    34  GetFourCCCodes          3 THIS, LPDWORD, LPDWORD
+    38  GetGDISurface           2 THIS, LPDIRECTDRAWSURFACE7 *
+    3c  GetMonitorFrequency     2 THIS, LPDWORD
+    40  GetScanLine             2 THIS, LPDWORD
+    44  GetVerticalBlankStatus  2 THIS, LPBOOL
+    48  Initialize              2 THIS, GUID *
+    4c  RestoreDisplayMode      1 THIS
+    50  SetCooperativeLevel     3 THIS, HWND, DWORD
+    54  SetDisplayMode          4 THIS, DWORD, DWORD, DWORD, (DWORD, DWORD)
+    58  WaitForVerticalBlank    3 THIS, DWORD, HANDLE
+    5c  GetAvailableVidMem      4 THIS, LPDDSCAPS2, LPDWORD, LPDWORD
+    60  GetSurfaceFromDC        3 THIS, HDC, LPDIRECTDRAWSURFACE7 *
+    64  RestoreAllSurfaces      1 THIS
+    68  TestCooperativeLevel    1 THIS
+    6c  GetDeviceIdentifier     3 THIS, LPDDDEVICEIDENTIFIER2, DWORD
+    70  StartModeTest           4 THIS, LPSIZE, DWORD, DWORD
+    74  EvaluateMode            3 THIS, DWORD, DWORD *
+
+
+
+IDirectDrawSurface Virtual Table
+
+OFFSET	NAME			ARGS
+
+    00  QueryInterface          3 THIS, REFIID, LPVOID *
+    04  AddRef                  1 THIS
+    08  Release                 1 THIS
+    0c  AddAttachedSurface      2 THIS, LPDIRECTDRAWSURFACE
+    10  AddOverlayDirtyRect     2 THIS, LPRECT
+    14  Blt                     6 THIS, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDBLTFX
+    18  BltBatch                4 THIS, LPDDBLTBATCH, DWORD, DWORD
+    1c  BltFast                 6 THIS, DWORD, DWORD, LPDIRECTDRAWSURFACE, LPRECT, DWORD
+    20  DeleteAttachedSurface   3 THIS, DWORD, LPDIRECTDRAWSURFACE
+    24  EnumAttachedSurfaces    3 THIS, LPVOID, LPDDENUMSURFACESCALLBACK
+    28  EnumOverlayZOrders      4 THIS, DWORD, LPVOID, LPDDENUMSURFACESCALLBACK
+    2c  Flip                    3 THIS, LPDIRECTDRAWSURFACE, DWORD
+    30  GetAttachedSurface      3 THIS, LPDDSCAPS, LPDIRECTDRAWSURFACE *
+    34  GetBltStatus            2 THIS, DWORD
+    38  GetCaps                 2 THIS, LPDDSCAPS
+    3c  GetClipper              2 THIS, LPDIRECTDRAWCLIPPER *
+    40  GetColorKey             3 THIS, DWORD, LPDDCOLORKEY
+    44  GetDC                   2 THIS, HDC *
+    48  GetFlipStatus           2 THIS, DWORD
+    4c  GetOverlayPosition      3 THIS, LPLONG, LPLONG
+    50  GetPalette              2 THIS, LPDIRECTDRAWPALETTE *
+    54  GetPixelFormat          2 THIS, LPDDPIXELFORMAT
+    58  GetSurfaceDesc          2 THIS, LPDDSURFACEDESC
+    5c  Initialize              3 THIS, LPDIRECTDRAW, LPDDSURFACEDESC
+    60  IsLost                  1 THIS
+    64  Lock                    5 THIS, LPRECT, LPDDSURFACEDESC, DWORD, HANDLE
+    68  ReleaseDC               2 THIS, HDC
+    6c  Restore                 1 THIS
+    70  SetClipper              2 THIS, LPDIRECTDRAWCLIPPER
+    74  SetColorKey             3 THIS, DWORD, LPDDCOLORKEY
+    78  SetOverlayPosition      3 THIS, LONG, LONG
+    7c  SetPalette              2 THIS, LPDIRECTDRAWPALETTE
+    80  Unlock                  2 THIS, LPVOID
+    84  UpdateOverlay           6 THIS, LPRECT, LPDIRECTDRAWSURFACE, LPRECT, DWORD, LPDDOVERLAYFX
+    88  UpdateOverlayDisplay    2 THIS, DWORD
+    8c  UpdateOverlayZOrder     3 THIS, DWORD, LPDIRECTDRAWSURFACE

@@ -2,8 +2,18 @@
 #include <stdint.h>
 #include <Windows.h>
 #include <stdlib.h>
+
+#define DIRECTINPUT_VERSION 0x800
+#include <ddraw.h>
+#include <dinput.h>
+#include <dsound.h>
+
 #include "hook.h"
 #include "watcall.h"
+
+#define assert(X) {if (!(X)) __debugbreak();}
+
+#define FULLSCREEN 1
 
 namespace {
 
@@ -37,18 +47,118 @@ GLOBAL(HMODULE,        gHModDInput,    0x53A29C);
 GLOBAL(HMODULE,        gHModDSound,    0x53A2A0);
 
 // DirectX COM Factory Functions
+typedef HRESULT (__stdcall * DirectDrawCreate_t)(GUID * lpGUID,
+                                                 LPDIRECTDRAW * lplpDD,
+                                                 IUnknown * pUnkOuter );
 GLOBAL(void*,          gFPDDCreate,    0x53A274);
 GLOBAL(void*,          gFPDICreate,    0x53A278);
 GLOBAL(void*,          gFPDSCreate,    0x53A27C);
 
 // DirectX Instances
-typedef void * LPDIRECTDRAW;
-GLOBAL(LPDIRECTDRAW,   gHDDraw,        0x539DE0);
+GLOBAL(IDirectDraw*,        gHDDraw,     0x539DE0);
+GLOBAL(IDirectInputA*,      gHDInput,    0x53A278);
+GLOBAL(IDirectSound*,       gHDSound,    0x53A27C);
+
+GLOBAL(IDirectDrawPalette*, gPalette,    0x539DEC);
+GLOBAL(IDirectDrawSurface*, gSurface,    0x539DE4);
 
 // Window Instance
 GLOBAL(HWND,           gWindow,        0x53A280);
 
 } // namespace {}
+
+// original @ 0x4B57F8
+int impl_4B57F8(int width, int height, int bpp) {
+
+    if (gHDDraw != nullptr ) {
+        watcall<0x4B5EE8>();
+        watcall<0x4B5A0C>(0ul);
+        assert(!"todo");
+        return -1;
+    }
+
+    if (DirectDrawCreate_t(gFPDDCreate)(nullptr,
+                                        &gHDDraw, 
+                                        nullptr) != DD_OK) {
+        return -1;
+    }
+
+    DWORD coop_level = (FULLSCREEN)
+                     ? DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE
+                     : DDSCL_NORMAL;
+
+    if (gHDDraw->SetCooperativeLevel(gWindow,
+                                     coop_level) != DD_OK) {
+        return -1;
+    }
+
+    if (gHDDraw->SetDisplayMode(width,
+                                height,
+                                bpp) != DD_OK) {
+        return -1;
+    }
+
+    DDSURFACEDESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    desc.dwSize         = sizeof(desc);
+    desc.dwFlags        = DDSD_CAPS;
+    desc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
+
+    if (gHDDraw->CreateSurface(&desc,
+                               &gSurface,
+                               nullptr) != DD_OK) {
+        return -1;
+    }
+
+    *(IDirectDrawSurface**)0x539DE8 = gSurface;
+
+    PALETTEENTRY temp[256];
+
+    for (uint32_t i=0; i<256; ++i) {
+        temp[i].peRed    = i;
+        temp[i].peGreen  = i;
+        temp[i].peBlue   = i;
+        temp[i].peFlags  = 0;
+    }
+
+    if (bpp == 8) {
+        if (gHDDraw->CreatePalette(DDPCAPS_ALLOW256 | DDPCAPS_8BIT,
+                                   temp,
+                                   &gPalette,
+                                   nullptr) != DD_OK) {
+            return -1;
+        }
+        if (gSurface->SetPalette(gPalette) != DD_OK) {
+            return -1;
+        }
+    }
+    else {
+        assert(!"todo");
+    }
+
+    return 0;
+}
+
+__declspec (naked)
+int hook_4B57F8() {
+    // push callee save
+    __asm push esi
+    __asm push edi
+    __asm push ecx
+    __asm push ebx
+    // args
+    __asm push ebx
+    __asm push edx
+    __asm push eax
+    __asm call impl_4B57F8
+    // pop callee save
+    __asm pop ebx
+    __asm pop ecx
+    __asm pop edi
+    __asm pop esi
+    // return result in eax
+    __asm ret
+}
 
 // original @ 0x4725E8
 int impl_4725E8(int a, void * b) {
@@ -87,6 +197,8 @@ int impl_4725E8(int a, void * b) {
 
         local = watcall<int, 0x47341C>();
         watcall<0x4B4D70>();
+
+        assert(!"todo");
     }
     while (false);
 
@@ -220,7 +332,7 @@ int create_window() {
         return 0;
     }
 
-#if 1
+#if FULLSCREEN
     // Fullscreen (Original)
     const DWORD style1 = WS_EX_TOPMOST;
     const DWORD style2 = WS_SYSMENU | WS_VISIBLE | WS_POPUP;
@@ -297,7 +409,7 @@ int init_directx() {
         gHModDDraw = LoadLibraryA("DDRAW.DLL");
         if (! gHModDDraw)
             break;
-        gFPDDCreate = GetProcAddress(gHModDDraw, "DirectDrawCreate");
+        gFPDDCreate = (DirectDrawCreate_t) GetProcAddress(gHModDDraw, "DirectDrawCreate");
         if (! gFPDDCreate)
             break;
 
@@ -338,10 +450,20 @@ int init_directx() {
     return 0;
 }
 
+template <typename type_t>
+type_t read(uint32_t offset) {
+    type_t val = 0;
+    memcpy(&val, (void*)offset, sizeof(type_t));
+    return val;
+}
+
 void place_hooks() {
 
     // Hook the create window function
     hook((void*)0x4B5738, (void*)hook_create_window);
+
+    // Hook the direct draw init function
+    hook((void*)0x4B57F8, (void*)hook_4B57F8);
 
     // Enable the debug log (debug.log)
     // note: must export env var $DEBUGACTIVE="log"
@@ -349,6 +471,17 @@ void place_hooks() {
         watcall<0x4B2E50>();
         call_debug_log("Fallout is hooked!");
     }
+
+#if 0
+    // gHDDraw->SetCooperativeLevel(gWindow, DDSCL_NORMAL)
+    if (read<uint16_t>(0x4B5850) == /* push 11h */ 0x116A) {
+        uint16_t data = /* push 08h */ 0x086A;
+        patch((void*)0x4B5850, &data, sizeof(data));
+    }
+
+    // Nop out gHDDraw->SetDisplayMode()
+    nop(0x4B586C, 0x4B587A - 0x4B586C);
+#endif
 }
 
 // original @ 0x4C9C90
