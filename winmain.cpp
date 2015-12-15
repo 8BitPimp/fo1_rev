@@ -3,7 +3,9 @@
 #include <Windows.h>
 #include <stdlib.h>
 
-#define DIRECTINPUT_VERSION 0x800
+#define DIRECTSOUND_VERSION 0x300
+#define DIRECTDRAW_VERSION  0x300
+#define DIRECTINPUT_VERSION 0x300
 #include <ddraw.h>
 #include <dinput.h>
 #include <dsound.h>
@@ -14,7 +16,10 @@
 #define assert(X) {if (!(X)) __debugbreak();}
 
 // Toggle experimental windowed mode
-#define FULLSCREEN 1
+#define FULLSCREEN 0
+
+// Use SDL subsystem
+#define USE_SDL 0
 
 namespace {
 
@@ -60,7 +65,7 @@ GLOBAL(void*,               gFPDSCreate,    0x53A27C);
 
 // DirectX Instances
 GLOBAL(IDirectDraw*,        gHDDraw,        0x539DE0);
-GLOBAL(IDirectInputA*,      gHDInput,       0x53A278);
+GLOBAL(IDirectInputA*,      gHDInput,       0x53A284);
 GLOBAL(IDirectSound*,       gHDSound,       0x53A27C);
 
 GLOBAL(IDirectDrawPalette*, gPalette,       0x539DEC);
@@ -75,6 +80,7 @@ GLOBAL(HWND,                gWindow,        0x53A280);
 // original @ 0x4B57F8
 int init_ddraw(int width, int height, int bpp) {
 
+
     // If DirectDraw instance exists
     if (gHDDraw != nullptr ) {
         watcall<0x4B5EE8>();
@@ -85,7 +91,7 @@ int init_ddraw(int width, int height, int bpp) {
 
     // Create DirectDraw instance
     if (DirectDrawCreate_t(gFPDDCreate)(nullptr,
-                                        &gHDDraw, 
+                                        &gHDDraw,
                                         nullptr) != DD_OK) {
         return -1;
     }
@@ -383,6 +389,7 @@ int create_window() {
 int init_directx() {
 
     do {
+#if !USE_SDL
         // Load direct draw library
         gHModDDraw = LoadLibraryA("DDRAW.DLL");
         if (! gHModDDraw)
@@ -406,6 +413,20 @@ int init_directx() {
         gFPDSCreate = GetProcAddress(gHModDSound, "DirectSoundCreate");
         if (! gFPDSCreate)
             break;
+#else
+        gHModDDraw  = nullptr;
+        gHModDInput = nullptr;
+        gHModDSound = nullptr;
+
+        extern HRESULT __stdcall CreateDirectDraw_Imp(GUID*, LPDIRECTDRAW*, IUnknown*);
+        gFPDDCreate = CreateDirectDraw_Imp;
+
+        extern HRESULT __stdcall CreateDirectInput_Imp(HINSTANCE, DWORD, LPDIRECTINPUTA *, LPUNKNOWN);
+        gFPDICreate = CreateDirectInput_Imp;
+
+        extern HRESULT __stdcall CreateDirectSound_Imp(GUID*, LPDIRECTSOUND*, IUnknown*);
+        gFPDSCreate = CreateDirectSound_Imp;
+#endif
 
         // Unknown?
         void * callback = (void*) 0x4C9F18;
